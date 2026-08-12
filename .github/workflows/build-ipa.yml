@@ -1,0 +1,40 @@
+name: Build Unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build unsigned archive
+        run: |
+          xcodebuild archive \
+            -project GamesHub.xcodeproj \
+            -scheme GamesHub \
+            -archivePath build/GamesHub.xcarchive \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+      - name: Package as IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/GamesHub.xcarchive/Products/Applications/*.app Payload/
+          zip -r GamesHub.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: GamesHub-ipa
+          path: GamesHub.ipa
